@@ -20,10 +20,10 @@
   <header class="border-b border-zinc-800 bg-[#09090B]/95 sticky top-0 z-30">
     <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2.5">
-        <span class="bg-emerald-600 text-white font-extrabold text-xs px-2 py-1 rounded">AS STUDIO</span>
+        <span class="bg-emerald-600 text-white font-extrabold text-xs px-2 py-1 rounded">AS STUDIO v2</span>
         <div>
           <h1 class="text-base font-extrabold tracking-tight text-white">AxomSakori<span class="text-emerald-400">.in</span> — AI Admin & SEO Engine</h1>
-          <p class="text-[11px] text-zinc-400">Image + PDF Extractor • Auto-Scraper Inbox • 1-Click GitHub Publisher</p>
+          <p class="text-[11px] text-zinc-400">Auto-Model Detection • Image + PDF Extractor • 1-Click GitHub Publisher</p>
         </div>
       </div>
       <div class="flex items-center gap-2">
@@ -292,21 +292,44 @@
       document.getElementById('apply-value').value = 'careers@sixmilehospital.in';
     }
 
-    async function callGeminiModel(model, apiKey, parts) {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error ? data.error.message : `HTTP ${res.status}`);
+    async function detectBestFlashModel(apiKey) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+        const data = await res.json();
+        if (data && Array.isArray(data.models)) {
+          const flashModels = data.models
+            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent') && m.name.includes('flash'))
+            .map(m => m.name.replace('models/', ''));
+          if (flashModels.length > 0) {
+            return flashModels.find(n => n.includes('3.8')) || flashModels.find(n => n.includes('2.5')) || flashModels[0];
+          }
+        }
+      } catch (e) {}
+      return 'gemini-3.8-flash';
+    }
+
+    async function callGeminiWithTimeout(model, apiKey, parts) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 25000);
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error ? data.error.message : `HTTP ${res.status}`);
+        }
+        const rawText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+        return JSON.parse(rawText);
+      } finally {
+        clearTimeout(timer);
       }
-      const rawText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-      return JSON.parse(rawText);
     }
 
     async function generateWithGemini() {
@@ -324,7 +347,7 @@
 
       const btn = document.getElementById('generate-btn');
       btn.disabled = true;
-      btn.innerText = '⏳ AI Extracting & Writing 100% SEO Article...';
+      btn.innerText = '⏳ Finding Active AI Model & Extracting...';
 
       const jobType = document.getElementById('job-type').value;
       const qualGroup = document.getElementById('qual-group').value;
@@ -373,16 +396,13 @@ Additional notes from admin: ${rawText}`;
       }
 
       try {
-        try {
-          CURRENT_JOB = await callGeminiModel('gemini-3.8-flash', apiKey, parts);
-        } catch (firstErr) {
-          console.warn('Primary model fallback:', firstErr.message);
-          CURRENT_JOB = await callGeminiModel('gemini-flash-latest', apiKey, parts);
-        }
+        const activeModel = await detectBestFlashModel(apiKey);
+        btn.innerText = `⏳ Generating with ${activeModel}...`;
+        CURRENT_JOB = await callGeminiWithTimeout(activeModel, apiKey, parts);
         renderGeneratedOutputs();
       } catch (err) {
         console.error(err);
-        alert('Gemini API Error: ' + err.message);
+        alert('AI Error: ' + (err.name === 'AbortError' ? 'Request timed out (25s). Check internet and retry.' : err.message));
       } finally {
         btn.disabled = false;
         btn.innerText = '✨ Generate 100% SEO Article + Posters + Social Kit';
@@ -489,135 +509,3 @@ Additional notes from admin: ${rawText}`;
       pCtx.fillText('🏢 ' + CURRENT_JOB.organization.slice(0, 36), 95, 555);
       pCtx.fillStyle = '#1F2937';
       pCtx.fillText('🎓 Qualification: ' + CURRENT_JOB.qualification.slice(0, 32), 95, 625);
-      pCtx.fillText('📍 Location: ' + CURRENT_JOB.district, 95, 695);
-      pCtx.fillStyle = '#DC2626';
-      pCtx.fillText('📅 Last Date: ' + CURRENT_JOB.lastDate, 95, 770);
-
-      pCtx.fillStyle = '#111827';
-      pCtx.fillRect(0, 920, 1080, 160);
-      pCtx.fillStyle = '#FFFFFF';
-      pCtx.font = 'bold 36px Inter, sans-serif';
-      pCtx.fillText('👉 Apply Link & Official PDF: AxomSakori.in', 60, 1015);
-    }
-
-    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-      const words = text.split(' ');
-      let line = '';
-      for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n] + ' ';
-        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-          ctx.fillText(line, x, y);
-          line = words[n] + ' ';
-          y += lineHeight;
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line, x, y);
-    }
-
-    function downloadCanvas(id, filename) {
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = document.getElementById(id).toDataURL('image/png');
-      link.click();
-    }
-
-    function copyEl(id) {
-      const el = document.getElementById(id);
-      el.select();
-      navigator.clipboard.writeText(el.value);
-      alert('Copied to clipboard!');
-    }
-
-    async function publishToGitHub() {
-      const user = document.getElementById('cfg-gh-user').value.trim();
-      const repo = document.getElementById('cfg-gh-repo').value.trim();
-      const token = document.getElementById('cfg-gh-token').value.trim();
-      const rawJson = document.getElementById('out-json').value.trim();
-
-      if (!token || !rawJson) {
-        alert('Please generate a job first and ensure your GitHub Token is saved in Settings.');
-        return;
-      }
-
-      const btn = document.getElementById('publish-btn');
-      const status = document.getElementById('publish-status');
-      btn.disabled = true;
-      btn.innerText = '⏳ Publishing to GitHub...';
-
-      try {
-        const newJob = JSON.parse(rawJson);
-        const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/data/jobs.json`;
-
-        const getRes = await fetch(apiUrl, { headers: { Authorization: `token ${token}` } });
-        const fileData = await getRes.json();
-        const existingJobs = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
-
-        const updatedJobs = [newJob, ...existingJobs.filter(j => j.id !== newJob.id)];
-        const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(updatedJobs, null, 2))));
-
-        const putRes = await fetch(apiUrl, {
-          method: 'PUT',
-          headers: {
-            Authorization: `token ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            message: `Publish job: ${newJob.shortTitle}`,
-            content: encodedContent,
-            sha: fileData.sha
-          })
-        });
-
-        if (!putRes.ok) throw new Error('GitHub commit failed');
-        status.innerText = `✅ Published Live! View at: https://axomsakori.in/?job=${newJob.id}`;
-      } catch (err) {
-        console.error(err);
-        status.innerText = '❌ Publish failed. Verify GitHub Token permissions (repo scope) and data/jobs.json path.';
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '🚀 Publish Live to AxomSakori.in Now';
-      }
-    }
-
-    async function fetchInboxCount() {
-      try {
-        const res = await fetch('data/scraped_inbox.json?v=' + Date.now());
-        if (!res.ok) return;
-        const items = await res.json();
-        document.getElementById('inbox-count').innerText = items.length;
-      } catch (e) {}
-    }
-
-    async function loadScrapedInbox() {
-      const panel = document.getElementById('inbox-panel');
-      const list = document.getElementById('inbox-list');
-      panel.classList.remove('hidden');
-      try {
-        const res = await fetch('data/scraped_inbox.json?v=' + Date.now());
-        if (!res.ok) throw new Error('No inbox yet');
-        const items = await res.json();
-        list.innerHTML = items.map(item => `
-          <div class="p-3 rounded-lg bg-zinc-900 border border-zinc-800 flex flex-col justify-between gap-2">
-            <div>
-              <span class="text-[10px] font-bold text-emerald-400 uppercase">${item.source}</span>
-              <div class="font-bold text-white mt-0.5">${item.title}</div>
-            </div>
-            <button onclick='useInboxItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="bg-emerald-600 text-white font-bold py-1.5 px-3 rounded w-fit">✨ Load into AI Studio</button>
-          </div>
-        `).join('');
-      } catch (e) {
-        list.innerHTML = `<p class="text-zinc-400">Auto-Scraper will populate this inbox automatically once Step 4 is added.</p>`;
-      }
-    }
-
-    function useInboxItem(item) {
-      document.getElementById('raw-text').value = `${item.title}\nSource: ${item.source}\nOfficial Link: ${item.link}\nSummary: ${item.summary || ''}`;
-      document.getElementById('apply-type').value = 'URL';
-      document.getElementById('apply-value').value = item.link || '';
-      document.getElementById('inbox-panel').classList.add('hidden');
-    }
-  </script>
-</body>
-</html>
