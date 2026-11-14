@@ -374,15 +374,15 @@ Additional notes from admin: ${rawText}`;
 
       try {
         try {
-          CURRENT_JOB = await callGeminiModel('gemini-2.5-flash', apiKey, parts);
+          CURRENT_JOB = await callGeminiModel('gemini-3.8-flash', apiKey, parts);
         } catch (firstErr) {
           console.warn('Primary model fallback:', firstErr.message);
-          CURRENT_JOB = await callGeminiModel('gemini-2.0-flash', apiKey, parts);
+          CURRENT_JOB = await callGeminiModel('gemini-flash-latest', apiKey, parts);
         }
         renderGeneratedOutputs();
       } catch (err) {
         console.error(err);
-        alert('Gemini API Error: ' + err.message + '\n\nTip: Check that your key starts with AIzaSy... without extra spaces.');
+        alert('Gemini API Error: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerText = '✨ Generate 100% SEO Article + Posters + Social Kit';
