@@ -292,6 +292,23 @@
       document.getElementById('apply-value').value = 'careers@sixmilehospital.in';
     }
 
+    async function callGeminiModel(model, apiKey, parts) {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error ? data.error.message : `HTTP ${res.status}`);
+      }
+      const rawText = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
+      return JSON.parse(rawText);
+    }
+
     async function generateWithGemini() {
       const apiKey = document.getElementById('cfg-gemini').value.trim();
       const rawText = document.getElementById('raw-text').value.trim();
@@ -315,7 +332,7 @@
       const applyValue = document.getElementById('apply-value').value.trim();
 
       const prompt = `You are an expert Assam Job Portal Editor & Google SEO Specialist for AxomSakori.in.
-Extract all recruitment details from the attached image/PDF and/or raw text, and output ONLY valid JSON (no markdown fences) matching this exact schema:
+Extract all recruitment details from the attached image/PDF and/or raw text, and output ONLY valid JSON matching this exact schema:
 {
   "id": "seo-url-slug-2026",
   "title": "High-CTR Google SEO Title e.g. Organization Recruitment 2026 – Apply for X Posts (District)",
@@ -356,21 +373,16 @@ Additional notes from admin: ${rawText}`;
       }
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
-        });
-        const data = await res.json();
-        const text = data.candidates[0].content.parts[0].text;
-        CURRENT_JOB = JSON.parse(text);
+        try {
+          CURRENT_JOB = await callGeminiModel('gemini-2.5-flash', apiKey, parts);
+        } catch (firstErr) {
+          console.warn('Primary model fallback:', firstErr.message);
+          CURRENT_JOB = await callGeminiModel('gemini-2.0-flash', apiKey, parts);
+        }
         renderGeneratedOutputs();
       } catch (err) {
         console.error(err);
-        alert('Error generating with Gemini API. Check your API key or try again.');
+        alert('Gemini API Error: ' + err.message + '\n\nTip: Check that your key starts with AIzaSy... without extra spaces.');
       } finally {
         btn.disabled = false;
         btn.innerText = '✨ Generate 100% SEO Article + Posters + Social Kit';
