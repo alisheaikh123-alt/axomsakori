@@ -509,3 +509,135 @@ Additional notes from admin: ${rawText}`;
       pCtx.fillText('🏢 ' + CURRENT_JOB.organization.slice(0, 36), 95, 555);
       pCtx.fillStyle = '#1F2937';
       pCtx.fillText('🎓 Qualification: ' + CURRENT_JOB.qualification.slice(0, 32), 95, 625);
+      pCtx.fillText('📍 Location: ' + CURRENT_JOB.district, 95, 695);
+      pCtx.fillStyle = '#DC2626';
+      pCtx.fillText('📅 Last Date: ' + CURRENT_JOB.lastDate, 95, 770);
+
+      pCtx.fillStyle = '#111827';
+      pCtx.fillRect(0, 920, 1080, 160);
+      pCtx.fillStyle = '#FFFFFF';
+      pCtx.font = 'bold 36px Inter, sans-serif';
+      pCtx.fillText('👉 Apply Link & Official PDF: AxomSakori.in', 60, 1015);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y);
+    }
+
+    function downloadCanvas(id, filename) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = document.getElementById(id).toDataURL('image/png');
+      link.click();
+    }
+
+    function copyEl(id) {
+      const el = document.getElementById(id);
+      el.select();
+      navigator.clipboard.writeText(el.value);
+      alert('Copied to clipboard!');
+    }
+
+    async function publishToGitHub() {
+      const user = document.getElementById('cfg-gh-user').value.trim();
+      const repo = document.getElementById('cfg-gh-repo').value.trim();
+      const token = document.getElementById('cfg-gh-token').value.trim();
+      const rawJson = document.getElementById('out-json').value.trim();
+
+      if (!token || !rawJson) {
+        alert('Please generate a job first and ensure your GitHub Token is saved in Settings.');
+        return;
+      }
+
+      const btn = document.getElementById('publish-btn');
+      const status = document.getElementById('publish-status');
+      btn.disabled = true;
+      btn.innerText = '⏳ Publishing to GitHub...';
+
+      try {
+        const newJob = JSON.parse(rawJson);
+        const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/data/jobs.json`;
+
+        const getRes = await fetch(apiUrl, { headers: { Authorization: `token ${token}` } });
+        const fileData = await getRes.json();
+        const existingJobs = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+
+        const updatedJobs = [newJob, ...existingJobs.filter(j => j.id !== newJob.id)];
+        const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(updatedJobs, null, 2))));
+
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Publish job: ${newJob.shortTitle}`,
+            content: encodedContent,
+            sha: fileData.sha
+          })
+        });
+
+        if (!putRes.ok) throw new Error('GitHub commit failed');
+        status.innerText = `✅ Published Live! View at: https://axomsakori.in/?job=${newJob.id}`;
+      } catch (err) {
+        console.error(err);
+        status.innerText = '❌ Publish failed. Verify GitHub Token permissions (repo scope) and data/jobs.json path.';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Publish Live to AxomSakori.in Now';
+      }
+    }
+
+    async function fetchInboxCount() {
+      try {
+        const res = await fetch('data/scraped_inbox.json?v=' + Date.now());
+        if (!res.ok) return;
+        const items = await res.json();
+        document.getElementById('inbox-count').innerText = items.length;
+      } catch (e) {}
+    }
+
+    async function loadScrapedInbox() {
+      const panel = document.getElementById('inbox-panel');
+      const list = document.getElementById('inbox-list');
+      panel.classList.remove('hidden');
+      try {
+        const res = await fetch('data/scraped_inbox.json?v=' + Date.now());
+        if (!res.ok) throw new Error('No inbox yet');
+        const items = await res.json();
+        list.innerHTML = items.map(item => `
+          <div class="p-3 rounded-lg bg-zinc-900 border border-zinc-800 flex flex-col justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold text-emerald-400 uppercase">${item.source}</span>
+              <div class="font-bold text-white mt-0.5">${item.title}</div>
+            </div>
+            <button onclick='useInboxItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="bg-emerald-600 text-white font-bold py-1.5 px-3 rounded w-fit">✨ Load into AI Studio</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = `<p class="text-zinc-400">Auto-Scraper will populate this inbox automatically once Step 4 is added.</p>`;
+      }
+    }
+
+    function useInboxItem(item) {
+      document.getElementById('raw-text').value = `${item.title}\nSource: ${item.source}\nOfficial Link: ${item.link}\nSummary: ${item.summary || ''}`;
+      document.getElementById('apply-type').value = 'URL';
+      document.getElementById('apply-value').value = item.link || '';
+      document.getElementById('inbox-panel').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
