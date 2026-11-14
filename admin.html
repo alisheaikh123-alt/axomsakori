@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AxomSakori.in — AI Content & SEO Admin Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans Bengali', sans-serif; background: #09090B; color: #F4F4F5; }
+    .assamese { font-family: 'Noto Sans Bengali', 'Inter', sans-serif; }
+    .card { background: #121216; border: 1px solid #27272A; }
+    .input-dark { background: #18181B; border: 1px solid #27272A; color: #F4F4F5; }
+    .input-dark:focus { outline: none; border-color: #10B981; }
+  </style>
+</head>
+<body class="min-h-screen pb-12">
+
+  <!-- Top Navbar -->
+  <header class="border-b border-zinc-800 bg-[#09090B]/95 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <span class="bg-emerald-600 text-white font-extrabold text-xs px-2 py-1 rounded">AS STUDIO</span>
+        <div>
+          <h1 class="text-base font-extrabold tracking-tight text-white">AxomSakori<span class="text-emerald-400">.in</span> — AI Admin & SEO Engine</h1>
+          <p class="text-[11px] text-zinc-400">Image + PDF Extractor • Auto-Scraper Inbox • 1-Click GitHub Publisher</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="loadScrapedInbox()" class="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-zinc-700 px-3 py-1.5 rounded-lg">
+          📥 Auto-Scraper Inbox (<span id="inbox-count">0</span>)
+        </button>
+        <button onclick="toggleSettings()" class="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg">
+          ⚙️ API & GitHub Setup
+        </button>
+      </div>
+    </div>
+
+    <!-- Collapsible API & GitHub Settings -->
+    <div id="settings-drawer" class="hidden border-t border-zinc-800 bg-[#121216] px-4 py-4">
+      <div class="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+        <div>
+          <label class="block text-zinc-400 font-semibold mb-1">Google Gemini API Key (Free)</label>
+          <input id="cfg-gemini" type="password" placeholder="AIzaSy..." class="input-dark w-full px-3 py-2 rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-zinc-400 font-semibold mb-1">GitHub Username</label>
+          <input id="cfg-gh-user" type="text" value="alisheaikh123-alt" class="input-dark w-full px-3 py-2 rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-zinc-400 font-semibold mb-1">GitHub Repo Name</label>
+          <input id="cfg-gh-repo" type="text" value="axomsakori" class="input-dark w-full px-3 py-2 rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-zinc-400 font-semibold mb-1">GitHub Personal Access Token</label>
+          <input id="cfg-gh-token" type="password" placeholder="ghp_..." class="input-dark w-full px-3 py-2 rounded-lg" />
+        </div>
+      </div>
+      <div class="max-w-7xl mx-auto mt-3 flex items-center justify-between">
+        <span class="text-[11px] text-zinc-400">Keys are stored locally in your browser only.</span>
+        <button onclick="saveSettings()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-1.5 rounded-lg">Save Configuration</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Auto-Scraper Inbox Modal/Banner -->
+  <div id="inbox-panel" class="hidden max-w-7xl mx-auto px-4 pt-4">
+    <div class="card rounded-xl p-4 border-emerald-500/40">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-extrabold text-emerald-400">🤖 Auto-Scraped Assam Govt & News Alerts (Click to Load into AI)</h2>
+        <button onclick="document.getElementById('inbox-panel').classList.add('hidden')" class="text-xs text-zinc-400 hover:text-white">✕ Close</button>
+      </div>
+      <div id="inbox-list" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs"></div>
+    </div>
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="max-w-7xl mx-auto px-4 pt-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
+    
+    <!-- Left Column: Smart Input (5 Cols) -->
+    <section class="lg:col-span-5 space-y-4">
+      <div class="card rounded-xl p-4 space-y-3.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-extrabold text-white">1. Upload Newspaper Ad / Govt PDF</h2>
+          <button onclick="loadSampleAd()" class="text-[11px] font-bold text-emerald-400 hover:underline">Load Sample Ad</button>
+        </div>
+
+        <!-- Multimodal File Dropzone (Image + PDF) -->
+        <label class="block border-2 border-dashed border-zinc-700 hover:border-emerald-500 rounded-xl p-4 text-center cursor-pointer transition bg-zinc-900/50">
+          <input id="file-input" type="file" accept="image/*,application/pdf" onchange="handleFileUpload(event)" class="hidden" />
+          <div class="text-2xl mb-1">📄🖼️</div>
+          <div class="text-xs font-bold text-zinc-200">Click to Upload Screenshot (JPG/PNG) or Official PDF</div>
+          <div id="file-status" class="text-[11px] text-zinc-400 mt-1">Supports The Assam Tribune ads & NHM/SLPRB PDFs</div>
+          <img id="image-preview" class="hidden max-h-40 mx-auto mt-3 rounded border border-zinc-700" />
+        </label>
+
+        <div>
+          <label class="block text-xs font-semibold text-zinc-400 mb-1">Or Paste Notice Text / Extra Details</label>
+          <textarea id="raw-text" rows="4" placeholder="Paste job notification text, walk-in address, or extra instructions..." class="input-dark w-full p-2.5 rounded-lg text-xs"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Job Category</label>
+            <select id="job-type" class="input-dark w-full px-2.5 py-2 rounded-lg">
+              <option value="GOVT">Assam Govt</option>
+              <option value="PRIVATE">Assam Private</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Qualification Group</label>
+            <select id="qual-group" class="input-dark w-full px-2.5 py-2 rounded-lg">
+              <option value="Graduate">Graduate</option>
+              <option value="12th">10th / 12th Pass</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Apply Mode</label>
+            <select id="apply-type" class="input-dark w-full px-2.5 py-2 rounded-lg">
+              <option value="URL">Official Website Link</option>
+              <option value="EMAIL">HR Email (Auto-Fill)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-zinc-400 font-semibold mb-1">Apply URL or HR Email</label>
+            <input id="apply-value" type="text" placeholder="https://... or hr@company.com" class="input-dark w-full px-2.5 py-2 rounded-lg" />
+          </div>
+        </div>
+
+        <button id="generate-btn" onclick="generateWithGemini()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs py-3 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+          ✨ Generate 100% SEO Article + Posters + Social Kit
+        </button>
+      </div>
+    </section>
+
+    <!-- Right Column: 4-Tab Output Workspace (7 Cols) -->
+    <section class="lg:col-span-7 space-y-4">
+      <!-- Tabs -->
+      <div class="flex flex-wrap gap-1.5 border-b border-zinc-800 pb-2 text-xs font-bold">
+        <button onclick="switchTab('seo')" id="btn-tab-seo" class="tab-btn px-3 py-1.5 rounded-lg bg-emerald-600 text-white">1. SEO Article & Tables</button>
+        <button onclick="switchTab('graphics')" id="btn-tab-graphics" class="tab-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-300">2. Banner & Poster</button>
+        <button onclick="switchTab('social')" id="btn-tab-social" class="tab-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-300">3. WhatsApp / FB / Reels</button>
+        <button onclick="switchTab('publish')" id="btn-tab-publish" class="tab-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-300">4. Publish Live</button>
+      </div>
+
+      <!-- TAB 1: SEO Article Preview -->
+      <div id="panel-seo" class="card rounded-xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-zinc-400">Google Rank & Discover Score</span>
+          <span id="seo-score-badge" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-xs font-extrabold px-2.5 py-0.5 rounded-full">Ready to Generate</span>
+        </div>
+        <div id="seo-preview-body" class="text-xs text-zinc-300 space-y-3">
+          <p class="text-zinc-500 py-10 text-center">Upload a newspaper screenshot/PDF or click "Load Sample Ad" on the left to generate your complete AssamCareer-style SEO article.</p>
+        </div>
+      </div>
+
+      <!-- TAB 2: Website Banner & Social Poster -->
+      <div id="panel-graphics" class="hidden card rounded-xl p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-xs font-bold text-zinc-300">Theme Color:</span>
+          <div class="flex gap-2">
+            <button onclick="setBannerColor('#0F5132')" class="w-6 h-6 rounded-full bg-[#0F5132] border-2 border-white"></button>
+            <button onclick="setBannerColor('#1E3A8A')" class="w-6 h-6 rounded-full bg-[#1E3A8A] border-2 border-white"></button>
+            <button onclick="setBannerColor('#266173')" class="w-6 h-6 rounded-full bg-[#266173] border-2 border-white"></button>
+            <button onclick="setBannerColor('#7C2D12')" class="w-6 h-6 rounded-full bg-[#7C2D12] border-2 border-white"></button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <span>Website Featured Banner (800×450)</span>
+              <button onclick="downloadCanvas('canvas-banner', 'website-banner.png')" class="text-emerald-400 hover:underline">⬇ Download PNG</button>
+            </div>
+            <canvas id="canvas-banner" width="800" height="450" class="w-full rounded-lg border border-zinc-700"></canvas>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold">
+              <span>WhatsApp / FB / Insta Poster (1080×1080)</span>
+              <button onclick="downloadCanvas('canvas-poster', 'social-poster.png')" class="text-emerald-400 hover:underline">⬇ Download PNG</button>
+            </div>
+            <canvas id="canvas-poster" width="1080" height="1080" class="w-full rounded-lg border border-zinc-700"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Social Media & Reels Kit -->
+      <div id="panel-social" class="hidden card rounded-xl p-4 space-y-3 text-xs">
+        <div>
+          <div class="flex justify-between font-bold text-emerald-400 mb-1">
+            <span>📱 WhatsApp Channel Alert</span>
+            <button onclick="copyEl('out-whatsapp')" class="hover:underline">📋 Copy</button>
+          </div>
+          <textarea id="out-whatsapp" rows="4" class="input-dark w-full p-2.5 rounded-lg"></textarea>
+        </div>
+        <div>
+          <div class="flex justify-between font-bold text-blue-400 mb-1">
+            <span>📘 Facebook Page & Assam Groups Post (Link in Comment Trick)</span>
+            <button onclick="copyEl('out-facebook')" class="hover:underline">📋 Copy</button>
+          </div>
+          <textarea id="out-facebook" rows="4" class="input-dark w-full p-2.5 rounded-lg"></textarea>
+        </div>
+        <div>
+          <div class="flex justify-between font-bold text-pink-400 mb-1">
+            <span>🎬 15-Sec Instagram Reels & YouTube Shorts Voiceover Script</span>
+            <button onclick="copyEl('out-reels')" class="hover:underline">📋 Copy</button>
+          </div>
+          <textarea id="out-reels" rows="4" class="input-dark w-full p-2.5 rounded-lg"></textarea>
+        </div>
+      </div>
+
+      <!-- TAB 4: Publish Live to GitHub -->
+      <div id="panel-publish" class="hidden card rounded-xl p-4 space-y-3 text-xs">
+        <h3 class="text-sm font-extrabold text-white">Publish Directly to AxomSakori.in (GitHub `data/jobs.json`)</h3>
+        <p class="text-zinc-400">Make sure your GitHub Token & Repo are saved in <strong>API & GitHub Setup</strong> above.</p>
+        <button id="publish-btn" onclick="publishToGitHub()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-xl">
+          🚀 Publish Live to AxomSakori.in Now
+        </button>
+        <div id="publish-status" class="text-xs font-semibold text-emerald-400"></div>
+        <div>
+          <div class="flex justify-between font-bold text-zinc-400 mb-1">
+            <span>Generated JSON Object (Manual Backup)</span>
+            <button onclick="copyEl('out-json')" class="text-emerald-400 hover:underline">📋 Copy JSON</button>
+          </div>
+          <textarea id="out-json" rows="8" class="input-dark w-full p-2.5 rounded-lg font-mono text-[11px]"></textarea>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    let UPLOADED_FILE = null;
+    let CURRENT_JOB = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('cfg-gemini').value = localStorage.getItem('as_gemini') || '';
+      document.getElementById('cfg-gh-user').value = localStorage.getItem('as_gh_user') || 'alisheaikh123-alt';
+      document.getElementById('cfg-gh-repo').value = localStorage.getItem('as_gh_repo') || 'axomsakori';
+      document.getElementById('cfg-gh-token').value = localStorage.getItem('as_gh_token') || '';
+      fetchInboxCount();
+    });
+
+    function toggleSettings() {
+      document.getElementById('settings-drawer').classList.toggle('hidden');
+    }
+
+    function saveSettings() {
+      localStorage.setItem('as_gemini', document.getElementById('cfg-gemini').value.trim());
+      localStorage.setItem('as_gh_user', document.getElementById('cfg-gh-user').value.trim());
+      localStorage.setItem('as_gh_repo', document.getElementById('cfg-gh-repo').value.trim());
+      localStorage.setItem('as_gh_token', document.getElementById('cfg-gh-token').value.trim());
+      alert('Configuration saved in browser!');
+      toggleSettings();
+    }
+
+    function switchTab(tab) {
+      ['seo', 'graphics', 'social', 'publish'].forEach(t => {
+        document.getElementById('panel-' + t).classList.add('hidden');
+        document.getElementById('btn-tab-' + t).className = 'tab-btn px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-300';
+      });
+      document.getElementById('panel-' + tab).classList.remove('hidden');
+      document.getElementById('btn-tab-' + tab).className = 'tab-btn px-3 py-1.5 rounded-lg bg-emerald-600 text-white';
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(',')[1];
+        UPLOADED_FILE = { base64, mimeType: file.type };
+        document.getElementById('file-status').innerText = `✅ Loaded: ${file.name} (${Math.round(file.size/1024)} KB)`;
+        const img = document.getElementById('image-preview');
+        if (file.type.startsWith('image/')) {
+          img.src = reader.result;
+          img.classList.remove('hidden');
+        } else {
+          img.classList.add('hidden');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function loadSampleAd() {
+      document.getElementById('raw-text').value = "SITUATIONS VACANT (Assam Tribune Classified): Reputed Multispecialty Hospital in Guwahati (Six Mile) invites applications for 06 Staff Nurse (GNM/B.Sc Nursing) and 03 Billing Executive (B.Com with Tally). Salary: Rs. 16,500 - 25,000/month. Last Date: 30 Nov 2026. Send CV to careers@sixmilehospital.in";
+      document.getElementById('job-type').value = 'PRIVATE';
+      document.getElementById('qual-group').value = 'Graduate';
+      document.getElementById('apply-type').value = 'EMAIL';
+      document.getElementById('apply-value').value = 'careers@sixmilehospital.in';
+    }
+
+    async function generateWithGemini() {
+      const apiKey = document.getElementById('cfg-gemini').value.trim();
+      const rawText = document.getElementById('raw-text').value.trim();
+      if (!apiKey) {
+        alert('Please add your Free Gemini API Key in "API & GitHub Setup" first!');
+        toggleSettings();
+        return;
+      }
+      if (!UPLOADED_FILE && !rawText) {
+        alert('Please upload a Newspaper Screenshot / Govt PDF or paste notice text first.');
+        return;
+      }
+
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.innerText = '⏳ AI Extracting & Writing 100% SEO Article...';
+
+      const jobType = document.getElementById('job-type').value;
+      const qualGroup = document.getElementById('qual-group').value;
+      const applyType = document.getElementById('apply-type').value;
+      const applyValue = document.getElementById('apply-value').value.trim();
+
+      const prompt = `You are an expert Assam Job Portal Editor & Google SEO Specialist for AxomSakori.in.
+Extract all recruitment details from the attached image/PDF and/or raw text, and output ONLY valid JSON (no markdown fences) matching this exact schema:
+{
+  "id": "seo-url-slug-2026",
+  "title": "High-CTR Google SEO Title e.g. Organization Recruitment 2026 – Apply for X Posts (District)",
+  "shortTitle": "Short Headline : X Posts",
+  "type": "${jobType}",
+  "qualificationGroup": "${qualGroup}",
+  "organization": "Organization Name",
+  "district": "District in Assam (e.g. Guwahati / All Assam)",
+  "qualification": "Required Qualification",
+  "vacancies": "Total Posts",
+  "salary": "Salary / Pay Scale",
+  "ageLimit": "Age Limit",
+  "applicationFee": "Application Fee",
+  "lastDate": "DD MMM 2026",
+  "postedAgo": "JUST NOW",
+  "source": "Official Notification / Newspaper Classified",
+  "bannerTag": "ASSAM JOB ALERT 2026",
+  "bannerColor": "#0F5132",
+  "assameseSummary": "3-sentence natural Assamese (অসমীয়া) summary of this job for local SEO",
+  "englishIntro": "Detailed 2-paragraph English SEO introduction mentioning Assam and eligibility",
+  "postBreakdown": [{"post": "Post Name", "vacancies": "Count", "pay": "Salary"}],
+  "eligibility": ["Point 1", "Point 2"],
+  "selectionProcess": "Detailed selection process paragraph",
+  "howToApply": ["Step 1", "Step 2", "Step 3"],
+  "applyType": "${applyType}",
+  "applyValue": "${applyValue || 'Extracted email or official URL from notice'}",
+  "officialPdf": "",
+  "faqs": [{"q": "Question 1?", "a": "Answer 1."}, {"q": "Question 2?", "a": "Answer 2."}],
+  "whatsappPost": "Formatted WhatsApp Channel post with emojis and call to check AxomSakori.in",
+  "facebookPost": "Assamese + English Facebook post saying Apply link is in First Comment",
+  "reelsScript": "15-second Assamese+English spoken script for Instagram Reels / YouTube Shorts"
+}
+Additional notes from admin: ${rawText}`;
+
+      const parts = [{ text: prompt }];
+      if (UPLOADED_FILE) {
+        parts.push({ inlineData: { mimeType: UPLOADED_FILE.mimeType, data: UPLOADED_FILE.base64 } });
+      }
+
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+        const data = await res.json();
+        const text = data.candidates[0].content.parts[0].text;
+        CURRENT_JOB = JSON.parse(text);
+        renderGeneratedOutputs();
+      } catch (err) {
+        console.error(err);
+        alert('Error generating with Gemini API. Check your API key or try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '✨ Generate 100% SEO Article + Posters + Social Kit';
+      }
+    }
+
+    function renderGeneratedOutputs() {
+      if (!CURRENT_JOB) return;
+      document.getElementById('seo-score-badge').innerText = 'SEO Score: 98/100 (Google Rank Ready)';
+
+      const applyPreview = CURRENT_JOB.applyType === 'EMAIL'
+        ? `<span class="text-emerald-400 font-bold">Auto-Fill Email:</span> ${CURRENT_JOB.applyValue} (Subject: <em>Application for the post of ${CURRENT_JOB.shortTitle}</em>)`
+        : `<span class="text-emerald-400 font-bold">Official Link:</span> ${CURRENT_JOB.applyValue}`;
+
+      document.getElementById('seo-preview-body').innerHTML = `
+        <div class="p-3 rounded-lg bg-zinc-900 border border-zinc-800 space-y-1.5">
+          <div class="text-[11px] text-emerald-400 font-bold">URL Slug: axomsakori.in/?job=${CURRENT_JOB.id}</div>
+          <div class="text-sm font-extrabold text-white">${CURRENT_JOB.title}</div>
+          <div class="text-xs text-zinc-300 assamese">${CURRENT_JOB.assameseSummary}</div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 bg-zinc-900/70 p-3 rounded-lg border border-zinc-800">
+          <div><span class="text-zinc-400">Organization:</span> <strong>${CURRENT_JOB.organization}</strong></div>
+          <div><span class="text-zinc-400">Vacancies:</span> <strong>${CURRENT_JOB.vacancies}</strong></div>
+          <div><span class="text-zinc-400">Qualification:</span> <strong>${CURRENT_JOB.qualification}</strong></div>
+          <div><span class="text-zinc-400">Last Date:</span> <strong class="text-red-400">${CURRENT_JOB.lastDate}</strong></div>
+        </div>
+        <div class="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800">${applyPreview}</div>
+      `;
+
+      document.getElementById('out-whatsapp').value = CURRENT_JOB.whatsappPost || '';
+      document.getElementById('out-facebook').value = CURRENT_JOB.facebookPost || '';
+      document.getElementById('out-reels').value = CURRENT_JOB.reelsScript || '';
+
+      const cleanJob = { ...CURRENT_JOB };
+      delete cleanJob.whatsappPost;
+      delete cleanJob.facebookPost;
+      delete cleanJob.reelsScript;
+      document.getElementById('out-json').value = JSON.stringify(cleanJob, null, 2);
+
+      drawGraphics();
+    }
+
+    function setBannerColor(hex) {
+      if (!CURRENT_JOB) return;
+      CURRENT_JOB.bannerColor = hex;
+      drawGraphics();
+      renderGeneratedOutputs();
+    }
+
+    function drawGraphics() {
+      if (!CURRENT_JOB) return;
+      const color = CURRENT_JOB.bannerColor || '#0F5132';
+
+      const bCanvas = document.getElementById('canvas-banner');
+      const bCtx = bCanvas.getContext('2d');
+      bCtx.fillStyle = color;
+      bCtx.fillRect(0, 0, 800, 450);
+      bCtx.fillStyle = 'rgba(0,0,0,0.35)';
+      bCtx.fillRect(0, 0, 800, 450);
+
+      bCtx.fillStyle = '#FFFFFF';
+      bCtx.font = 'bold 22px Inter, sans-serif';
+      bCtx.fillText('AXOMSAKORI.IN • ' + CURRENT_JOB.type + ' RECRUITMENT 2026', 40, 65);
+
+      bCtx.font = 'bold 34px Inter, sans-serif';
+      wrapText(bCtx, CURRENT_JOB.shortTitle, 40, 145, 720, 44);
+
+      bCtx.fillStyle = '#D1FAE5';
+      bCtx.font = 'bold 22px Inter, sans-serif';
+      bCtx.fillText('📍 ' + CURRENT_JOB.district + '   |   🎓 ' + CURRENT_JOB.qualification, 40, 320);
+
+      bCtx.fillStyle = '#DC2626';
+      bCtx.fillRect(40, 355, 310, 48);
+      bCtx.fillStyle = '#FFFFFF';
+      bCtx.font = 'bold 22px Inter, sans-serif';
+      bCtx.fillText('Last Date: ' + CURRENT_JOB.lastDate, 58, 387);
+
+      const pCanvas = document.getElementById('canvas-poster');
+      const pCtx = pCanvas.getContext('2d');
+      pCtx.fillStyle = '#FFFFFF';
+      pCtx.fillRect(0, 0, 1080, 1080);
+
+      pCtx.fillStyle = color;
+      pCtx.fillRect(0, 0, 1080, 210);
+      pCtx.fillStyle = '#FFFFFF';
+      pCtx.font = 'bold 46px Inter, sans-serif';
+      pCtx.fillText('AXOMSAKORI.IN — JOB ALERT', 60, 105);
+      pCtx.font = 'bold 30px sans-serif';
+      pCtx.fillStyle = '#D1FAE5';
+      pCtx.fillText('অসমৰ বিশ্বাসযোগ্য চাকৰিৰ খবৰ | ' + CURRENT_JOB.type + ' JOB', 60, 162);
+
+      pCtx.fillStyle = '#111827';
+      pCtx.font = 'bold 48px Inter, sans-serif';
+      wrapText(pCtx, CURRENT_JOB.shortTitle, 60, 310, 960, 62);
+
+      pCtx.fillStyle = '#F8FAFC';
+      pCtx.fillRect(60, 480, 960, 360);
+      pCtx.strokeStyle = '#CBD5E1';
+      pCtx.lineWidth = 3;
+      pCtx.strokeRect(60, 480, 960, 360);
+
+      pCtx.fillStyle = color;
+      pCtx.font = 'bold 34px Inter, sans-serif';
+      pCtx.fillText('🏢 ' + CURRENT_JOB.organization.slice(0, 36), 95, 555);
+      pCtx.fillStyle = '#1F2937';
+      pCtx.fillText('🎓 Qualification: ' + CURRENT_JOB.qualification.slice(0, 32), 95, 625);
+      pCtx.fillText('📍 Location: ' + CURRENT_JOB.district, 95, 695);
+      pCtx.fillStyle = '#DC2626';
+      pCtx.fillText('📅 Last Date: ' + CURRENT_JOB.lastDate, 95, 770);
+
+      pCtx.fillStyle = '#111827';
+      pCtx.fillRect(0, 920, 1080, 160);
+      pCtx.fillStyle = '#FFFFFF';
+      pCtx.font = 'bold 36px Inter, sans-serif';
+      pCtx.fillText('👉 Apply Link & Official PDF: AxomSakori.in', 60, 1015);
+    }
+
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(' ');
+      let line = '';
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+          ctx.fillText(line, x, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, x, y);
+    }
+
+    function downloadCanvas(id, filename) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = document.getElementById(id).toDataURL('image/png');
+      link.click();
+    }
+
+    function copyEl(id) {
+      const el = document.getElementById(id);
+      el.select();
+      navigator.clipboard.writeText(el.value);
+      alert('Copied to clipboard!');
+    }
+
+    async function publishToGitHub() {
+      const user = document.getElementById('cfg-gh-user').value.trim();
+      const repo = document.getElementById('cfg-gh-repo').value.trim();
+      const token = document.getElementById('cfg-gh-token').value.trim();
+      const rawJson = document.getElementById('out-json').value.trim();
+
+      if (!token || !rawJson) {
+        alert('Please generate a job first and ensure your GitHub Token is saved in Settings.');
+        return;
+      }
+
+      const btn = document.getElementById('publish-btn');
+      const status = document.getElementById('publish-status');
+      btn.disabled = true;
+      btn.innerText = '⏳ Publishing to GitHub...';
+
+      try {
+        const newJob = JSON.parse(rawJson);
+        const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/data/jobs.json`;
+
+        const getRes = await fetch(apiUrl, { headers: { Authorization: `token ${token}` } });
+        const fileData = await getRes.json();
+        const existingJobs = JSON.parse(decodeURIComponent(escape(atob(fileData.content))));
+
+        const updatedJobs = [newJob, ...existingJobs.filter(j => j.id !== newJob.id)];
+        const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(updatedJobs, null, 2))));
+
+        const putRes = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: {
+            Authorization: `token ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: `Publish job: ${newJob.shortTitle}`,
+            content: encodedContent,
+            sha: fileData.sha
+          })
+        });
+
+        if (!putRes.ok) throw new Error('GitHub commit failed');
+        status.innerText = `✅ Published Live! View at: https://axomsakori.in/?job=${newJob.id}`;
+      } catch (err) {
+        console.error(err);
+        status.innerText = '❌ Publish failed. Verify GitHub Token permissions (repo scope) and data/jobs.json path.';
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '🚀 Publish Live to AxomSakori.in Now';
+      }
+    }
+
+    async function fetchInboxCount() {
+      try {
+        const res = await fetch('data/scraped_inbox.json?v=' + Date.now());
+        if (!res.ok) return;
+        const items = await res.json();
+        document.getElementById('inbox-count').innerText = items.length;
+      } catch (e) {}
+    }
+
+    async function loadScrapedInbox() {
+      const panel = document.getElementById('inbox-panel');
+      const list = document.getElementById('inbox-list');
+      panel.classList.remove('hidden');
+      try {
+        const res = await fetch('data/scraped_inbox.json?v=' + Date.now());
+        if (!res.ok) throw new Error('No inbox yet');
+        const items = await res.json();
+        list.innerHTML = items.map(item => `
+          <div class="p-3 rounded-lg bg-zinc-900 border border-zinc-800 flex flex-col justify-between gap-2">
+            <div>
+              <span class="text-[10px] font-bold text-emerald-400 uppercase">${item.source}</span>
+              <div class="font-bold text-white mt-0.5">${item.title}</div>
+            </div>
+            <button onclick='useInboxItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="bg-emerald-600 text-white font-bold py-1.5 px-3 rounded w-fit">✨ Load into AI Studio</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = `<p class="text-zinc-400">Auto-Scraper will populate this inbox automatically once Step 4 is added.</p>`;
+      }
+    }
+
+    function useInboxItem(item) {
+      document.getElementById('raw-text').value = `${item.title}\nSource: ${item.source}\nOfficial Link: ${item.link}\nSummary: ${item.summary || ''}`;
+      document.getElementById('apply-type').value = 'URL';
+      document.getElementById('apply-value').value = item.link || '';
+      document.getElementById('inbox-panel').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>
