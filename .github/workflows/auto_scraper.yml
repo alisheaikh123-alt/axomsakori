@@ -1,0 +1,32 @@
+name: AxomSakori 24x7 Auto-Scraper
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape-assam-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run Assam Job Scraper
+        run: python scraper.py
+
+      - name: Commit new scraped inbox
+        run: |
+          git config user.name "AxomSakori Bot"
+          git config user.email "bot@axomsakori.in"
+          git add data/scraped_inbox.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update Assam scraped job inbox"
+          git push
